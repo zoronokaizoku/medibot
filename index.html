@@ -1,0 +1,718 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Medical Assistant (Offline)</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --primary-dark: #388e3c;
+            --primary-light: #8bc34a;
+            --primary-very-light: #e8f5e9;
+            --user-message-bg: #e3f2fd;
+            --user-message-text: #0d47a1;
+            --bot-message-bg: #f1f8e9;
+            --bot-message-text: #33691e;
+            --bg-color: #f5f9ff;
+            --container-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --timestamp-color: #757575;
+            --input-bg: #f9f9f9;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --shadow-sm: rgba(0, 0, 0, 0.05);
+            --offline-color: #d32f2f;
+            --online-color: #4CAF50;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-color);
+            background-image: linear-gradient(to bottom right, #f5f9ff, #e8f5e9);
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+            height: 100vh;
+            margin: 0 auto;
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            padding: 15px 20px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 2px 5px var(--shadow-color);
+            position: relative;
+            z-index: 10;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .header p {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        #chat-container {
+            background-color: var(--container-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        #chatbox {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.7);
+            position: relative;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            max-width: 80%;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 1px 2px var(--shadow-sm);
+            position: relative;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .user-message .message-bubble {
+            background-color: var(--user-message-bg);
+            color: var(--user-message-text);
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-message .message-bubble {
+            background-color: var(--bot-message-bg);
+            color: var(--bot-message-text);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-timestamp {
+            font-size: 0.7rem;
+            color: var(--timestamp-color);
+            margin-top: 4px;
+            padding: 0 5px;
+        }
+
+        .bot-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 8px;
+            margin-bottom: 4px;
+            box-shadow: 0 2px 4px var(--shadow-sm);
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: var(--user-message-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--user-message-text);
+            font-weight: bold;
+            margin-left: 8px;
+            margin-bottom: 4px;
+            box-shadow: 0 2px 4px var(--shadow-sm);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        #user-input {
+            display: flex;
+            padding: 16px;
+            background-color: #fdfdfd;
+            border-top: 1px solid var(--border-color);
+        }
+
+        #message {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 1rem;
+            background-color: var(--input-bg);
+            margin-right: 10px;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        #message:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        #send-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 24px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #send-button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        #send-button:active {
+            transform: scale(0.98);
+        }
+
+        .button-icon {
+            margin-left: 8px;
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+            justify-content: center;
+        }
+
+        .suggestion-chip {
+            background-color: var(--primary-very-light);
+            color: var(--primary-dark);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 1px solid var(--primary-light);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        .suggestion-chip:hover {
+            background-color: var(--primary-light);
+            color: white;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            background-color: var(--bot-message-bg);
+            border-radius: 18px;
+            width: fit-content;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px var(--shadow-sm);
+            align-self: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            float: left;
+            margin: 0 1px;
+            background-color: var(--bot-message-text);
+            display: block;
+            border-radius: 50%;
+            opacity: 0.4;
+        }
+
+        .typing-indicator span:nth-of-type(1) {
+            animation: 1s blink infinite 0.3333s;
+        }
+
+        .typing-indicator span:nth-of-type(2) {
+            animation: 1s blink infinite 0.6666s;
+        }
+
+        .typing-indicator span:nth-of-type(3) {
+            animation: 1s blink infinite 0.9999s;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .disclaimer {
+            font-size: 0.75rem;
+            color: var(--timestamp-color);
+            text-align: center;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--timestamp-color);
+        }
+
+        .connection-status span {
+            margin-right: 5px;
+        }
+
+        #status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        #status-indicator.online {
+            background-color: var(--online-color);
+        }
+
+        #status-indicator.offline {
+            background-color: var(--offline-color);
+        }
+
+        .voice-status {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--timestamp-color);
+            margin-top: 8px;
+        }
+
+        /* Media queries for responsiveness */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .main-container {
+                padding: 10px;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+            
+            #message {
+                font-size: 0.95rem;
+            }
+            
+            #send-button {
+                padding: 10px 15px;
+                font-size: 0.95rem;
+            }
+            
+            .suggestions {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                justify-content: flex-start;
+                padding-bottom: 10px;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .suggestion-chip {
+                flex-shrink: 0;
+            }
+        }
+
+        /* Scrollbar styling */
+        #chatbox::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chatbox::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #chatbox::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+
+        #chatbox {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>AI Medical Assistant</h1>
+            <p>Your personal health companion</p>
+        </header>
+        
+        <main class="main-container">
+            <div id="chat-container">
+                <div id="chatbox">
+                    <div class="message bot-message">
+                        <div class="message-header">
+                            <div class="bot-avatar">M</div>
+                        </div>
+                        <div class="message-bubble">
+                            Hello! Welcome to your AI Health Assistant. How can I help you today?
+                        </div>
+                        <div class="message-timestamp"></div>
+                    </div>
+                    
+                    <div class="suggestions">
+                        <div class="suggestion-chip" onclick="selectSymptom('fever')">I have a fever</div>
+                        <div class="suggestion-chip" onclick="selectSymptom('dry cough')">Dry cough</div>
+                        <div class="suggestion-chip" onclick="selectSymptom('wet cough')">Wet cough</div>
+                        <div class="suggestion-chip" onclick="selectSymptom('sore throat')">Sore throat</div>
+                        <div class="suggestion-chip" onclick="selectSymptom('headache')">Headache</div>
+                    </div>
+                    
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div id="user-input">
+                    <input type="text" id="message" placeholder="Describe your symptoms or ask a health question...">
+                    <button id="send-button" onclick="sendMessage()">
+                        Send
+                        <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div id="audio-player"></div>
+            </div>
+            
+            <div class="voice-status" id="voice-status">
+                Voice feature available when online
+            </div>
+            
+            <div class="disclaimer">
+                <strong>Disclaimer:</strong> This is an AI-powered medical assistant providing general health information. It is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your doctor or healthcare provider for any questions you may have about a medical condition.
+            </div>
+            
+            <div class="connection-status">
+                <span id="status-indicator" class="offline"></span>
+                <span id="status-text">Offline Mode</span>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Medical responses database for offline use
+        const medicalResponses = {
+            "greeting": "Hello! Welcome to your AI Health Assistant. How can I help you today?",
+            "fever": "You mentioned having a fever. Please monitor your temperature. Stay hydrated and rest. If your fever is high (above 102°F or 39°C), persists for more than 3 days, or is accompanied by other concerning symptoms like stiff neck, severe headache, or difficulty breathing, please seek medical attention immediately.",
+            "high fever": "A high fever (above 102°F or 39°C) requires close monitoring. Ensure you stay hydrated and rest. If it persists or is accompanied by other symptoms, seek medical attention.",
+            "low grade fever": "A low-grade fever might just need rest and hydration. Monitor your temperature and if it increases or other symptoms develop, consult a doctor.",
+            "headache": "You're experiencing a headache. Try resting in a quiet, dark room and staying hydrated. Over-the-counter pain relievers like Paracetamol or Ibuprofen might help. If your headache is severe, sudden, accompanied by vision changes, numbness, weakness, or a stiff neck, please seek immediate medical attention.",
+            "severe headache": "A severe headache, especially if sudden, needs immediate medical attention to rule out serious conditions.",
+            "tension headache": "For a tension headache, try relaxation techniques, gentle neck stretches, and over-the-counter pain relievers.",
+            "migraine": "Migraines can be debilitating. If you experience frequent or severe migraines, it's best to consult a doctor for a management plan.",
+            "cough": "You mentioned a cough. Could you describe if it's dry or if you're bringing up any phlegm? If you have difficulty breathing, seek immediate medical help.",
+            "dry cough": "For a dry cough, try soothing lozenges or a humidifier. If it persists or is bothersome, consult a doctor.",
+            "wet cough": "If you have a wet cough, ensure you're staying hydrated to help loosen mucus. If it worsens or is accompanied by difficulty breathing or chest pain, consult a doctor.",
+            "persistent cough": "A cough that lasts for more than a few weeks should be evaluated by a doctor to determine the cause.",
+            "cough with blood": "Coughing up blood is a serious symptom and requires immediate medical attention.",
+            "sore throat": "A sore throat can be uncomfortable. Try gargling with warm salt water, drinking warm fluids with honey and lemon, or using throat lozenges. If your sore throat is severe, lasts more than a few days, or is accompanied by fever or difficulty swallowing, please consult a doctor.",
+            "strep throat": "If you suspect strep throat (severe sore throat, pain swallowing, fever), it's important to see a doctor for diagnosis and treatment with antibiotics.",
+            "hoarse voice": "A hoarse voice can be due to a cold or overuse. Rest your voice and stay hydrated. If it persists for more than a week or is accompanied by pain, consult a doctor.",
+            "stomach pain": "You mentioned stomach pain. Please try to describe the location and type of pain (e.g., sharp, dull, cramping). If the pain is severe, sudden, accompanied by fever, vomiting, or blood in your stool, seek immediate medical attention.",
+            "sharp stomach pain": "Sudden, sharp stomach pain can indicate a serious issue and requires immediate medical attention.",
+            "dull stomach ache": "A mild, dull stomach ache might resolve with rest. Avoid heavy meals and observe if it worsens.",
+            "cramping stomach pain": "Cramping stomach pain can be due to gas or indigestion. If it's severe or persistent, consult a doctor.",
+            "nausea": "If you're feeling nauseous, try eating bland foods like toast or crackers and sipping on clear fluids. Avoid strong smells. If it's severe or persistent, consult a doctor.",
+            "vomiting": "Vomiting can lead to dehydration. Sip on clear fluids. Avoid solid foods until you feel better. If it's severe, persistent, or you see blood, seek medical attention.",
+            "diarrhea": "Diarrhea can lead to dehydration. Make sure to drink plenty of fluids, preferably oral rehydration solutions. Avoid dairy and greasy foods. If it's severe, bloody, or lasts more than 2 days, consult a doctor.",
+            "constipation": "For constipation, increase your intake of fiber-rich foods, drink plenty of water, and try gentle exercise. If it persists, consult a doctor.",
+            "bloating": "If you're feeling bloated, try avoiding gas-producing foods and eating slowly. Gentle exercise might also help. If it's severe or accompanied by pain, consult a doctor.",
+            "indigestion": "For indigestion, try smaller, more frequent meals and avoid fatty or spicy foods. Over-the-counter antacids might provide relief. If the pain is severe or persistent, consult a doctor.",
+            "heartburn": "For heartburn, try avoiding trigger foods and eating smaller meals. Over-the-counter antacids can provide relief. If it's frequent or severe, consult a doctor.",
+            "acid reflux": "Managing acid reflux often involves dietary changes and avoiding lying down after eating. If it's persistent, consult a doctor.",
+            "dizziness": "If you feel dizzy, sit or lie down immediately. Stay hydrated. If it's persistent, severe, or accompanied by other symptoms like blurred vision or fainting, consult a doctor.",
+            "lightheadedness": "Lightheadedness can have various causes. Ensure you're eating regularly and staying hydrated. If it persists, consult a doctor.",
+            "vertigo": "Severe or persistent vertigo (spinning sensation) should be evaluated by a doctor.",
+            "fainting": "Fainting can be a sign of an underlying issue. If you faint, it's important to consult a doctor to determine the cause.",
+            "fatigue": "Feeling tired can be due to many factors. Ensure you're getting enough sleep, staying hydrated, and eating a balanced diet. If fatigue is persistent and interferes with your daily life, consult a doctor.",
+            "excessive tiredness": "If you experience excessive tiredness even after adequate rest, it's important to consult a doctor to rule out any underlying medical conditions.",
+            "insomnia": "For trouble sleeping, try to establish a regular sleep schedule, create a relaxing bedtime routine, and ensure your bedroom environment is conducive to sleep. If insomnia persists, consult a doctor.",
+            "sleep apnea": "If you experience loud snoring with pauses in breathing and daytime sleepiness, consult a doctor about the possibility of sleep apnea.",
+            "anxiety": "If you're feeling anxious, try relaxation techniques like deep breathing or meditation. If anxiety is persistent or significantly impacting your daily life, consider speaking with a mental health professional.",
+            "panic attack": "If you think you are experiencing a panic attack, try deep breathing exercises. If they are frequent or severe, consider speaking with a mental health professional.",
+            "depression": "If you are feeling persistently down, losing interest in activities, or experiencing other symptoms of depression, please reach out to a mental health professional.",
+            "stress": "Managing stress through exercise, relaxation techniques, and hobbies can improve overall well-being.",
+            "cold": "For cold symptoms, rest, drink plenty of fluids, and consider over-the-counter pain relievers for aches and fever. Nasal saline sprays can help with congestion. If symptoms worsen or don't improve after a week, consult a doctor.",
+            "runny nose": "A runny nose is a common cold symptom. Stay hydrated and use tissues to keep your nose clean.",
+            "nasal congestion": "For nasal congestion, try using a saline nasal spray or a humidifier. Decongestants might also help. If symptoms persist or worsen, consult a doctor.",
+            "sneezing": "Sneezing can be a symptom of allergies or a cold. Try to identify any triggers if it's allergy-related.",
+            "sore throat and runny nose": "A sore throat and runny nose are common symptoms of a cold. Rest, fluids, and over-the-counter remedies can help.",
+            "flu": "If you suspect you have the flu (fever, body aches, fatigue, cough), rest and stay hydrated. Antiviral medications might be effective if started early. Consult a doctor.",
+            "allergy": "If you suspect an allergic reaction, avoid the allergen. Over-the-counter antihistamines might help with mild symptoms like itching or hives. If you have difficulty breathing or swelling, seek immediate medical help.",
+            "rash": "A rash can have many causes. Avoid scratching it. If it's widespread, itchy, blistering, or accompanied by fever, seek medical attention.",
+            "thank you": "You're welcome! Take care.",
+            "thanks": "Glad I could assist. Feel better!",
+            "bye": "Goodbye! Stay healthy.",
+            "goodbye": "Wishing you well!",
+            "default": "Sorry, I didn't understand your symptoms. Please be more specific, or consult a healthcare professional for accurate diagnosis and treatment."
+        };
+
+        // Initialize connection status
+        let isOnline = navigator.onLine;
+        updateConnectionStatus();
+
+        // Listen for online/offline events
+        window.addEventListener('online', function() {
+            isOnline = true;
+            updateConnectionStatus();
+            document.getElementById('voice-status').textContent = "Voice feature available (online)";
+        });
+
+        window.addEventListener('offline', function() {
+            isOnline = false;
+            updateConnectionStatus();
+            document.getElementById('voice-status').textContent = "Voice feature unavailable (offline)";
+        });
+
+        function updateConnectionStatus() {
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            
+            if (isOnline) {
+                statusIndicator.className = 'online';
+                statusText.textContent = 'Online';
+            } else {
+                statusIndicator.className = 'offline';
+                statusText.textContent = 'Offline Mode';
+            }
+        }
+
+        // Initialize timestamps
+        document.addEventListener('DOMContentLoaded', function() {
+            const timestampDivs = document.querySelectorAll('.message-timestamp');
+            updateTimestamps(timestampDivs);
+            
+            // Add Enter key event listener
+            document.getElementById('message').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+
+        function updateTimestamps(elements) {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const formattedHours = hours % 12 || 12;
+            const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+            
+            elements.forEach(element => {
+                element.textContent = `${formattedHours}:${formattedMinutes} ${ampm}`;
+            });
+        }
+
+        function selectSymptom(symptom) {
+            document.getElementById('message').value = symptom;
+            sendMessage();
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('message');
+            const chatbox = document.getElementById('chatbox');
+            const message = messageInput.value.trim();
+            messageInput.value = '';
+
+            if (message === '') return;
+
+            // Add user message
+            const userDiv = document.createElement('div');
+            userDiv.classList.add('message', 'user-message');
+            
+            const userHeader = document.createElement('div');
+            userHeader.classList.add('message-header');
+            
+            const userAvatar = document.createElement('div');
+            userAvatar.classList.add('user-avatar');
+            userAvatar.textContent = 'Y';
+            userHeader.appendChild(userAvatar);
+            userDiv.appendChild(userHeader);
+            
+            const userBubble = document.createElement('div');
+            userBubble.classList.add('message-bubble');
+            userBubble.textContent = message;
+            userDiv.appendChild(userBubble);
+            
+            const timestampDiv = document.createElement('div');
+            timestampDiv.classList.add('message-timestamp');
+            userDiv.appendChild(timestampDiv);
+            updateTimestamps([timestampDiv]);
+            
+            chatbox.appendChild(userDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+            
+            // Hide suggestions after user sends message
+            const suggestions = document.querySelector('.suggestions');
+            if (suggestions) {
+                suggestions.style.display = 'none';
+            }
+            
+            // Show typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.classList.add('typing-indicator');
+            typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+            typingIndicator.style.display = 'inline-flex';
+            chatbox.appendChild(typingIndicator);
+            chatbox.scrollTop = chatbox.scrollHeight;
+            
+            // Process the message after a short delay
+            setTimeout(() => {
+                // Find matching response in database
+                let response = findBestResponse(message.toLowerCase());
+                
+                // Remove typing indicator
+                chatbox.removeChild(typingIndicator);
+                
+                // Add bot message
+                const botDiv = document.createElement('div');
+                botDiv.classList.add('message', 'bot-message');
+                
+                const botHeader = document.createElement('div');
+                botHeader.classList.add('message-header');
+                
+                const botAvatar = document.createElement('div');
+                botAvatar.classList.add('bot-avatar');
+                botAvatar.textContent = 'M';
+                botHeader.appendChild(botAvatar);
+                botDiv.appendChild(botHeader);
+                
+                const botBubble = document.createElement('div');
+                botBubble.classList.add('message-bubble');
+                botBubble.textContent = response;
+                botDiv.appendChild(botBubble);
+                
+                const botTimestampDiv = document.createElement('div');
+                botTimestampDiv.classList.add('message-timestamp');
+                botDiv.appendChild(botTimestampDiv);
+                updateTimestamps([botTimestampDiv]);
+                
+                chatbox.appendChild(botDiv);
+                chatbox.scrollTop = chatbox.scrollHeight;
+                
+                // Use text-to-speech if online
+                if (isOnline && 'speechSynthesis' in window) {
+                    const speech = new SpeechSynthesisUtterance(response);
+                    speech.lang = 'en-US';
+                    window.speechSynthesis.speak(speech);
+                }
+            }, 1000);
+        }
+        
+        function findBestResponse(userInput) {
+            // First, check for exact matches
+            for (const keyword in medicalResponses) {
+                if (userInput === keyword) {
+                    return medicalResponses[keyword];
+                }
+            }
+            
+            // Then check for partial matches
+            for (const keyword in medicalResponses) {
+                if (userInput.includes(keyword)) {
+                    return medicalResponses[keyword];
+                }
+            }
+            
+            // Check for word-by-word matches
+            const userWords = userInput.split(' ');
+            for (const keyword in medicalResponses) {
+                const keywordWords = keyword.split(' ');
+                for (const userWord of userWords) {
+                    if (keywordWords.includes(userWord) && userWord.length > 3) {  // Only match on significant words
+                        return medicalResponses[keyword];
+                    }
+                }
+            }
+            
+            // Default response if no match found
+            return medicalResponses["default"];
+        }
+    </script>
+</body>
+</html>
